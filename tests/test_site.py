@@ -115,9 +115,24 @@ class TestHead(unittest.TestCase):
             self.assertIn(mot, desc)
 
     def test_open_graph(self):
-        for prop in ("og:title", "og:description", "og:image", "og:url"):
+        for prop in ("og:title", "og:description", "og:image", "og:url", "og:type",
+                     "og:site_name", "og:image:alt"):
             self.assertTrue(self.meta(property=prop), prop)
+        self.assertEqual(self.meta(property="og:locale"), "fr_FR")
+        self.assertEqual(self.meta(property="og:url"), "https://simonlaugueux.fr/")
         self.assertTrue(self.meta(property="og:image").startswith("https://simonlaugueux.fr/"))
+        self.assertEqual(self.meta(property="og:image:width"), "1200")
+        self.assertEqual(self.meta(property="og:image:height"), "630")
+
+    def test_twitter_card(self):
+        self.assertEqual(self.meta(name="twitter:card"), "summary_large_image")
+        self.assertEqual(self.meta(name="twitter:image"), self.meta(property="og:image"))
+        for nom in ("twitter:title", "twitter:description", "twitter:image:alt"):
+            self.assertTrue(self.meta(name=nom), nom)
+
+    def test_canonical(self):
+        lien = self.page.find("link", rel="canonical")
+        self.assertEqual(lien.attrs["href"], "https://simonlaugueux.fr/")
 
     def test_json_ld_local_business(self):
         scripts = self.page.find_all("script", type="application/ld+json")
@@ -523,8 +538,27 @@ class TestAssets(unittest.TestCase):
     def test_image_open_graph(self):
         og = self.page.find("meta", property="og:image").attrs["content"]
         data = (ROOT / og.removeprefix("https://simonlaugueux.fr/")).read_bytes()
+        self.assertEqual(data[:3], b"\xff\xd8\xff")  # JPEG
+        self.assertEqual(taille_jpeg(data), (1200, 630))
+        self.assertLess(len(data), 300_000)  # WhatsApp ignore les images trop lourdes
+
+    def test_apple_touch_icon(self):
+        href = self.page.find("link", rel="apple-touch-icon").attrs["href"]
+        data = (ROOT / href).read_bytes()
         self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
-        self.assertEqual(struct.unpack(">II", data[16:24]), (1200, 630))
+        self.assertEqual(struct.unpack(">II", data[16:24]), (180, 180))
+
+
+def taille_jpeg(data):
+    """(largeur, hauteur) lue dans le segment SOF d'un JPEG."""
+    i = 2
+    while i < len(data):
+        marqueur, longueur = data[i + 1], struct.unpack(">H", data[i + 2:i + 4])[0]
+        if 0xC0 <= marqueur <= 0xCF and marqueur not in (0xC4, 0xC8, 0xCC):
+            hauteur, largeur = struct.unpack(">HH", data[i + 5:i + 9])
+            return largeur, hauteur
+        i += 2 + longueur
+    return None
 
 if __name__ == "__main__":
     unittest.main()

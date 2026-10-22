@@ -10,9 +10,9 @@ Site statique d'une seule page, publié avec GitHub Pages. Aucun outil à instal
 | `index.html` | Tout le contenu de la page |
 | `assets/css/style.css` | Couleurs, polices, mise en page |
 | `assets/js/main.js` | Menu mobile et animations (facultatif) |
-| `assets/img/` | Icônes, texture bois, favicon, image de partage |
+| `assets/img/` | Icônes, texture bois, favicon, icône iPhone (`apple-touch-icon.png`), image de partage (`partage.jpg`) |
 | `assets/fonts/` | Polices Cormorant Garamond et Lato, hébergées sur le site (aucun appel à Google Fonts) |
-| `tools/og_image.py` | Régénère l'image de partage `og-image.png` |
+| `tools/og_image.py` | Régénère l'image de partage et l'icône iPhone à partir des modèles `tools/og-image.html` et `tools/icone.html` |
 | `tests/` | Vérifications automatiques |
 | `CNAME` | Nom de domaine pour GitHub Pages |
 | `.nojekyll` | Demande à GitHub Pages de servir les fichiers tels quels |
@@ -53,7 +53,19 @@ npx --yes html-validate index.html         # validité HTML
 python3 -m http.server 8000                # aperçu sur http://localhost:8000
 ```
 
-Image de partage (après modification des couleurs) : `python3 tools/og_image.py`.
+## Aperçu des liens partagés
+
+Quand on partage https://simonlaugueux.fr (WhatsApp, Messenger, LinkedIn, Slack…), l'aperçu affiche le titre, la description et l'image déclarés dans le `<head>` de `index.html` (balises `og:*` et `twitter:*`).
+
+L'image `assets/img/partage.jpg` (1200×630, moins de 300 Ko) est générée à partir du modèle `tools/og-image.html`, qui reprend les couleurs et les polices du site. Le contenu tient dans le carré central, car WhatsApp recadre l'aperçu en carré. Après une modification du modèle, du nom ou des couleurs :
+
+```bash
+uv run --with pillow tools/og_image.py   # ou : pip install pillow && python3 tools/og_image.py
+```
+
+Il faut Google Chrome, Chromium ou Edge installé (ou leur chemin dans la variable `CHROME`). Le script régénère aussi `assets/img/apple-touch-icon.png` (180×180) depuis `tools/icone.html`.
+
+Les applications gardent l'aperçu en cache pour chaque adresse. Pour en forcer un nouveau après publication : [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) → « Scrape Again » (vaut pour WhatsApp et Messenger), [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/), ou partager l'adresse avec un paramètre, par exemple `https://simonlaugueux.fr/?v=2`. Si l'image change, lui donner un nouveau nom de fichier évite que l'ancienne reste en cache.
 
 ## Contenu à valider par Simon
 
